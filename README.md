@@ -28,11 +28,11 @@ SkillSpector helps you answer: **"Is this skill safe to install?"**
 git clone https://github.com/your-org/skillspector.git
 cd skillspector
 
-# Install with pip (recommended)
-pip install -e .
+# Install for production use
+make install
 
-# Or install with dependencies for development
-pip install -e ".[dev]"
+# Or install with development dependencies
+make install-dev
 ```
 
 ### Basic Usage
@@ -216,29 +216,62 @@ Options:
 # Clone and install dev dependencies
 git clone https://github.com/your-org/skillspector.git
 cd skillspector
-pip install -e ".[dev]"
+make install-dev
 
 # Run tests
-pytest
+make test
 
 # Run tests with coverage
-pytest --cov=skillspector
+make test-cov
 
 # Run linting
-ruff check src/
+make lint
 
-# Run type checking
-mypy src/
+# Format code
+make format
 ```
 
 ### Release Management
 
+To publish a new version to nv-shared-pypi artifactory, you need to configure your credentials first.
+
+#### Setup Credentials (One-time)
+
+Configure Poetry with your Artifactory credentials:
+
 ```bash
-# Publish a new version to nv-shared-pypi artifactory
-python release.py --version major --user user@nvidia.com  # 0.1.0 -> 1.0.0
-python release.py --version minor --user user@nvidia.com  # 0.1.0 -> 0.2.0
-python release.py --version patch --user user@nvidia.com  # 0.1.0 -> 0.1.1
+poetry config http-basic.nv-shared <your-nvidia-username> <your-artifactory-token>
 ```
+
+This stores credentials in `~/.config/pypoetry/auth.toml`. You can get your Artifactory token from [https://urm.nvidia.com](https://urm.nvidia.com).
+
+Alternatively, you can set environment variables:
+```bash
+export TWINE_USERNAME="<your-nvidia-username>"
+export TWINE_PASSWORD="<your-artifactory-token>"
+```
+
+#### Publishing a Release
+
+```bash
+# Publish a new version using make (recommended)
+make release VERSION=patch USER=user@nvidia.com  # 0.1.0 -> 0.1.1
+make release VERSION=minor USER=user@nvidia.com  # 0.1.0 -> 0.2.0
+make release VERSION=major USER=user@nvidia.com  # 0.1.0 -> 1.0.0
+
+# Or use the release script directly
+python release.py --version patch --user user@nvidia.com
+
+# Development versions
+make release VERSION=dev USER=user@nvidia.com  # 0.1.0 -> 0.1.0-dev1
+```
+
+The release process will:
+1. Update version in `pyproject.toml` and `__init__.py`
+2. Commit the version change
+3. Build the package
+4. Publish to nv-shared-pypi artifactory
+5. Create and push a git tag
 
 ### Project Structure
 
