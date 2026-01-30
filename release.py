@@ -152,9 +152,10 @@ def build_and_publish(user: str, dry_run: bool = False) -> None:
     """Build and publish the package using build and twine.
 
     Authentication can be provided via (in order of precedence):
-    1. TWINE_USERNAME and TWINE_PASSWORD environment variables - recommended for CI/CD
-    2. ARTIFACTORY_PASSWORD environment variable with --user flag
-    3. Interactive password prompt (if none of the above are configured)
+    1. Poetry auth.toml file (~/.config/pypoetry/auth.toml) - recommended for local releases
+    2. TWINE_USERNAME and TWINE_PASSWORD environment variables - recommended for CI/CD
+    3. ARTIFACTORY_PASSWORD environment variable with --user flag
+    4. Interactive password prompt (if none of the above are configured)
     """
     if dry_run:
         logger.info("🔍 DRY RUN: Would run build and publish commands")
@@ -177,6 +178,7 @@ def build_and_publish(user: str, dry_run: bool = False) -> None:
     logger.info("📦 Publishing to nv-shared-pypi repository...")
 
     # Check for authentication methods
+    auth_toml = Path.home() / ".config" / "pypoetry" / "auth.toml"
     twine_username = os.environ.get("TWINE_USERNAME")
     twine_password = os.environ.get("TWINE_PASSWORD")
     password = os.environ.get("ARTIFACTORY_PASSWORD")
@@ -195,7 +197,30 @@ def build_and_publish(user: str, dry_run: bool = False) -> None:
         "dist/*"
     ]
 
-    if twine_username and twine_password:
+    # Try to read credentials from Poetry's auth.toml first
+    poetry_username = None
+    poetry_password = None
+    
+    if auth_toml.exists():
+        try:
+            # Use tomllib for Python 3.11+, tomli for older versions
+            try:
+                import tomllib
+            except ImportError:
+                import tomli as tomllib  # type: ignore
+            
+            with auth_toml.open("rb") as f:
+                auth_data = tomllib.load(f)
+                if "http-basic" in auth_data and "nv-shared" in auth_data["http-basic"]:
+                    poetry_username = auth_data["http-basic"]["nv-shared"].get("username")
+                    poetry_password = auth_data["http-basic"]["nv-shared"].get("password")
+        except Exception as e:
+            logger.warning(f"⚠️  Could not read Poetry auth.toml: {e}")
+
+    if poetry_username and poetry_password:
+        logger.info(f"🔑 Using credentials from Poetry auth.toml: {auth_toml}")
+        publish_cmd.extend(["-u", poetry_username, "-p", poetry_password])
+    elif twine_username and twine_password:
         logger.info("🔑 Using credentials from TWINE_USERNAME/TWINE_PASSWORD environment variables")
         publish_cmd.extend(["-u", twine_username, "-p", twine_password])
     elif password:
@@ -203,7 +228,9 @@ def build_and_publish(user: str, dry_run: bool = False) -> None:
         publish_cmd.extend(["-u", user, "-p", password])
     else:
         logger.info("💡 You will be prompted for your Artifactory password/token")
-        logger.info("💡 Tip: Set TWINE_USERNAME and TWINE_PASSWORD environment variables")
+        logger.info(f"💡 Tip: Configure credentials in {auth_toml} using:")
+        logger.info("    poetry config http-basic.nv-shared <username> <password>")
+        logger.info("    or set TWINE_USERNAME and TWINE_PASSWORD environment variables")
         publish_cmd.extend(["-u", user])
 
     run_command(publish_cmd)
