@@ -14,7 +14,6 @@ SkillSpector helps you answer: **"Is this skill safe to install?"**
 ## Documentation
 
 - **[Development guide](docs/DEVELOPMENT.md)** — Architecture, package layout, and how to extend the analyzer pipeline.
-- **[OSS_RELEASE.md](OSS_RELEASE.md)** — How to produce a public-OSS branch from this repo.
 
 ## Features
 
@@ -272,10 +271,7 @@ SkillSpector detects **64 vulnerability patterns** across 16 categories:
 | TP3 | Parameter Description Injection | MEDIUM | Injection patterns in parameter definitions (overrides, system tokens, malicious defaults) |
 | TP4 | Description-Behavior Mismatch | MEDIUM | Declared tool description does not match actual code behavior (LLM-powered) |
 
-View all patterns:
-```bash
-skillspector patterns
-```
+All detected patterns are listed in the tables above.
 
 ## Risk Scoring
 
@@ -301,7 +297,7 @@ skillspector patterns
 ### Terminal Output
 
 ```
- SkillSpector Security Report  v0.1.0
+ SkillSpector Security Report  v2.0.0
 
 Skill: suspicious-skill
 Source: ./suspicious-skill/

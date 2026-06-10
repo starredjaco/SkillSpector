@@ -200,6 +200,14 @@ def _parse_manifest(skill_dir: Path) -> dict[str, object]:
         manifest["permissions"] = (
             [str(p) for p in permissions] if isinstance(permissions, list) else []
         )
+        # Preserve parameter definitions as dicts so the MCP tool-poisoning
+        # analyzer (TP1/TP2/TP3 parameter checks) can inspect them. Without
+        # this, those checks never fire on real scans because the manifest
+        # carried no `parameters` key.
+        parameters = data.get("parameters", [])
+        manifest["parameters"] = (
+            [p for p in parameters if isinstance(p, dict)] if isinstance(parameters, list) else []
+        )
         return manifest
     return {}
 

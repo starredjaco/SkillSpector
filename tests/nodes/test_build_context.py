@@ -70,6 +70,7 @@ def test_build_context_real_directory_with_skill_md(tmp_path: Path) -> None:
         "description": "For tests",
         "triggers": ["a", "b"],
         "permissions": ["read"],
+        "parameters": [],
     }
     assert result["ast_cache"] == {}
     assert result["previous_manifest"] is None
@@ -185,3 +186,28 @@ def test_build_context_skill_md_lowercase(tmp_path: Path) -> None:
     assert result["manifest"]["description"] == "d"
     assert "skill.md" in result["components"]
     assert "references/guide.md" in result["components"]
+
+
+def test_build_context_parses_parameters_from_frontmatter(tmp_path: Path) -> None:
+    """`parameters` frontmatter is preserved as dicts so MCP TP checks can reach it.
+
+    Regression guard: without this, the mcp_tool_poisoning parameter checks
+    (TP3 and parameter-scoped TP1/TP2) never fire on real scans because the
+    manifest carried no `parameters` key.
+    """
+    (tmp_path / "SKILL.md").write_text(
+        "---\n"
+        "name: reader\n"
+        "description: reads data\n"
+        "parameters:\n"
+        "  - name: path\n"
+        "    description: file path to read\n"
+        "  - not-a-dict\n"  # non-dict entries are dropped
+        "---\n",
+        encoding="utf-8",
+    )
+    state: SkillspectorState = {"skill_path": str(tmp_path)}
+    result = build_context(state)
+    assert result["manifest"]["parameters"] == [
+        {"name": "path", "description": "file path to read"}
+    ]

@@ -830,8 +830,11 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
     if isinstance(params, list):
         findings.extend(_check_tp3(params))
 
-    # TP4: LLM-based check (only when use_llm is enabled)
-    if state.get("use_llm", False):
+    # TP4: LLM-based check (only when use_llm is enabled). Defaults to True to
+    # match every other LLM-using node (semantic_*, meta_analyzer); the CLI
+    # always sets this explicitly, so the default only affects programmatic
+    # callers that omit the key.
+    if state.get("use_llm", True):
         findings.extend(_check_tp4(state))
 
     logger.info("%s: %d findings", ANALYZER_ID, len(findings))
